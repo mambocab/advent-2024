@@ -80,3 +80,5 @@ For these example lists, here is the process of finding the similarity score:
 - So, for these example lists, the similarity score at the end of this process is 31 (9 + 4 + 0 + 0 + 9 + 9).
 
 Once again consider your left and right lists. What is their similarity score?
+
+Your puzzle answer was 23228917.

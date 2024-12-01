@@ -35,6 +35,46 @@ pub fn main() !void {
         sum += distance(usize, lv, rv);
     }
     try stdout.print("{d}\n", .{sum});
+
+    try stdout.print("{d}\n", .{try matchScore(left.items, right.items)});
+}
+
+pub fn matchScore(left: []usize, right: []usize) !usize {
+    var l_idx: usize = 0;
+    var r_idx: usize = 0;
+    var score_total: usize = 0;
+
+    while (l_idx < left.len and r_idx < right.len) {
+        const l_item = left[l_idx];
+        const r_item = right[r_idx];
+        if (l_item == r_item) {
+            const cur_val = l_item;
+            var left_count_cur_val: usize = 0;
+            var right_count_cur_val: usize = 0;
+            while (l_idx < left.len and left[l_idx] == cur_val) {
+                left_count_cur_val += 1;
+                l_idx += 1;
+            }
+            while (r_idx < right.len and right[r_idx] == cur_val) {
+                right_count_cur_val += 1;
+                r_idx += 1;
+            }
+            score_total += cur_val * left_count_cur_val * right_count_cur_val;
+        } else {
+            if (l_item < r_item) {
+                l_idx += 1;
+            } else if (r_item < l_item) {
+                r_idx += 1;
+            }
+        }
+    }
+    return score_total;
+}
+
+test "matchScore" {
+    var left_ = [_]usize{ 1, 2, 3, 3, 3, 4 };
+    var right = [_]usize{ 3, 3, 3, 4, 5, 9 };
+    try expectEqual(31, try matchScore(left_[0..], right[0..]));
 }
 
 pub fn splitAndConvert(line: []const u8) ![2]usize {
@@ -80,6 +120,7 @@ pub fn distance(comptime T: type, left: T, right: T) T {
 
 const testalloc = std.testing.allocator;
 const expectEqualDeep = std.testing.expectEqualDeep;
+const expectEqual = std.testing.expectEqual;
 
 test "splitConvertAndSort should do that" {
     const input =
