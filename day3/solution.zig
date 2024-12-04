@@ -1,8 +1,11 @@
 // File structure bitten from https://kristoff.it/blog/advent-of-code-zig/
 const std = @import("std");
 const input = @embedFile("input");
-const example =
+const example1 =
     \\xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))
+;
+const example2 =
+    \\xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))
 ;
 
 pub fn main() !void {
@@ -14,10 +17,36 @@ pub fn main() !void {
     }
     var stdout = stdout_bw.writer();
 
-    try stdout.print("part 1 = {any}\n", .{try part1(input)});
+    const result = try solution(input);
+    try stdout.print("part 1 = {any}\n", .{result[0]});
+    try stdout.print("part 2 = {any}\n", .{result[1]});
 }
 
-fn part1(in: []const u8) !usize {
+fn solution(in: []const u8) ![2]usize {
+    // Part 2 is more "selective" than part 1.
+    var both_parts_sum: usize = 0;
+    var part_1_only_sum: usize = 0;
+
+    // Find each segment between occurrances.
+    var splits = std.mem.splitSequence(u8, in, "don't()");
+    // We start in implicit do() mode, so the first split is added to both.
+    both_parts_sum += try processMuls(splits.next().?);
+
+    while (splits.next()) |split| {
+        if (std.mem.indexOf(u8, split, "do()")) |do_idx| {
+            // Split each line into the beginning, which occurs after a don't()...
+            part_1_only_sum += try processMuls(split[0..do_idx]);
+            // ... and the end, which occurs after a do().
+            both_parts_sum += try processMuls(split[do_idx..split.len]);
+        } else {
+            // Cleanup after the final do().
+            part_1_only_sum += try processMuls(split);
+        }
+    }
+    return .{ part_1_only_sum + both_parts_sum, both_parts_sum };
+}
+
+fn processMuls(in: []const u8) !usize {
     var muls = std.mem.splitSequence(u8, in, "mul(");
     var sum: usize = 0;
     while (muls.next()) |mul| {
@@ -31,8 +60,13 @@ fn part1(in: []const u8) !usize {
     return sum;
 }
 
-test "example" {
-    try std.testing.expectEqual(161, try part1(example));
+test "part 1" {
+    try std.testing.expectEqual(161, try processMuls(example1));
+    try std.testing.expectEqual(161, (try solution(example1))[0]);
+}
+
+test "part 2" {
+    try std.testing.expectEqual(48, (try solution(example2))[1]);
 }
 
 const Error = error{TooManyNumbersError};
