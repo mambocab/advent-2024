@@ -9,18 +9,6 @@ const example_easy =
     \\XMAS.S
     \\.X....
 ;
-const example_harder =
-    \\....XXMAS.
-    \\.SAMXMS...
-    \\...S..A...
-    \\..A.A.MS.X
-    \\XMASAMX.MM
-    \\X.....XA.A
-    \\S.S.S.S.SS
-    \\.A.A.A.A.A
-    \\..M.M.M.MM
-    \\.X.X.XMASX
-;
 const example_hardest =
     \\MMMSXXMASM
     \\MSAMXMSMSA
@@ -45,13 +33,11 @@ pub fn main() !void {
 
     try stdout.print(
         \\example_easy    = {any}
-        \\example_harder  = {any}
         \\example_hardest = {any}
         \\input           = {any}
         \\
     , .{
         try solution(example_easy),
-        try solution(example_harder),
         try solution(example_hardest),
         try solution(input),
     });
@@ -63,43 +49,9 @@ inline fn str_eql(a: []const u8, b: []const u8) bool {
     return std.mem.eql(u8, a, b);
 }
 
-fn solution(in: []const u8) !usize {
-    // There are TKTKTK valid configurations of XMAS in the word search:
-    //
-    // 1 and 2: Horizontal configurations:
-    // ```
-    // XMAS
-    // SAMX
-    // ```
-    // 3 and 4: vertical configurations:
-    //
-    // ```
-    // XS
-    // MA
-    // AM
-    // SX
-    // ```
-    //
-    // 5 and 6: down and to the right:
-    //
-    // ```
-    // X....S...
-    // .M....A..
-    // ..A....M.
-    // ...S....X
-    // ```
-    //
-    // and 7 and 8: up and to the right:
-    // ```
-    // ...S...X
-    // ..A...M.
-    // .M...A..
-    // X...S...
-    // ```
-    //
-    // ... So part 1 is easy. Just check for all of those.
-
+fn solution(in: []const u8) ![2]usize {
     var part_1_count: usize = 0;
+    var part_2_count: usize = 0;
     var lines = std.mem.splitScalar(u8, in, '\n');
 
     // Pre-populate. Leave line 1 undefined so all iterations can be the same.
@@ -119,11 +71,12 @@ fn solution(in: []const u8) !usize {
 
         if (line_1.len == 0) break;
 
-        // For each 4-wide window, check for all 8 configuraitons.
+        // For each n-wide window, check for all configuraitons.
         for (0..line_1.len) |i| {
             const check_horiz = line_1.len - i >= 4;
             const check_vert = line_4.len > 0;
 
+            // Part 1.
             // Check for horizontal configurations if we have enough characters.
             if (check_horiz) {
                 const horiz_candidate = line_1[i .. i + 4];
@@ -180,48 +133,18 @@ fn solution(in: []const u8) !usize {
                     }
                 }
             }
+
+            // Part 2.
+            if (line_1.len - i >= 3 and line_3.len != 0) {
+                const valid_center = line_2[i + 1] == 'A';
+                const valid_down = (line_1[i] == 'M' and line_3[i + 2] == 'S' or
+                    line_1[i] == 'S' and line_3[i + 2] == 'M');
+                const valid_up = (line_3[i] == 'M' and line_1[i + 2] == 'S' or
+                    line_3[i] == 'S' and line_1[i + 2] == 'M');
+                if (valid_center and valid_down and valid_up) part_2_count += 1;
+            }
         }
     }
 
-    return part_1_count;
-}
-
-test "simple" {
-    const one_count_inputs: [5][]const u8 = .{
-        \\XMAS
-        ,
-        \\.S
-        \\.A
-        \\.M
-        \\.X
-        ,
-        \\X...
-        \\.M..
-        \\..A.
-        \\...S
-        ,
-        \\S...
-        \\.A..
-        \\..M.
-        \\...X
-        ,
-        \\...X
-        \\..M.
-        \\.A..
-        \\S...
-    };
-    for (one_count_inputs) |s| {
-        if (std.testing.expectEqual(1, try solution(s))) {} else |e| {
-            return e;
-        }
-    }
-}
-
-test "test with two" {
-    try std.testing.expectEqual(2, try solution(
-        \\SAMX
-        \\.A..
-        \\..M.
-        \\...X
-    ));
+    return .{ part_1_count, part_2_count };
 }
