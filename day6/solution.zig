@@ -72,11 +72,11 @@ const Cell = enum {
     }
 };
 
-const Direction = enum {
-    north,
-    east,
-    south,
-    west,
+const Direction = enum(u3) {
+    north = 0,
+    east = 1,
+    south = 2,
+    west = 3,
 
     fn rowMod(self: *const Direction, in: usize) usize {
         return switch (self.*) {
@@ -100,6 +100,7 @@ const Lab = struct {
     floor: [][]Cell,
     tracked_count: usize,
     allocator: std.mem.Allocator,
+    known_directions: [][][4]bool,
 
     fn init(self: *Lab, alloc: std.mem.Allocator, in: []const u8) !void {
         self.allocator = alloc;
@@ -109,6 +110,7 @@ const Lab = struct {
         var expected_line_length: ?usize = null;
 
         var rows = std.ArrayList([]Cell).init(alloc);
+        var known_directions_list = std.ArrayList([][4]bool).init(alloc);
 
         while (lines.next()) |line| {
             if (expected_line_length) |expected| {
@@ -125,23 +127,48 @@ const Lab = struct {
                 var row_0 = try alloc.alloc(Cell, line.len + 2);
                 for (0..row_0.len) |idx| row_0[idx] = Cell.border;
                 try rows.append(row_0);
+
+                var directions_row_0 = try alloc.alloc([4]bool, line.len + 2);
+                for (0..line.len + 2) |d_row_idx| {
+                    directions_row_0[d_row_idx] = .{ false, false, false, false };
+                }
+                try known_directions_list.append(directions_row_0);
             }
 
             // Allocate memory for storing the row, including a column on each end for the border.
             var row = try alloc.alloc(Cell, line.len + 2);
+            var directions_row = try alloc.alloc([4]bool, line.len + 2);
+            for (0..line.len + 2) |d_row_idx| {
+                directions_row[d_row_idx] = .{ false, false, false, false };
+            }
             row[0] = Cell.border;
             for (line, 1..) |char, idx| {
-                row[idx] = try Cell.from(char);
+                const c = try Cell.from(char);
+                row[idx] = c;
+                switch (c) {
+                    .guard_north => directions_row[idx][@intFromEnum(Direction.north)] = true,
+                    .guard_east => directions_row[idx][@intFromEnum(Direction.east)] = true,
+                    .guard_south => directions_row[idx][@intFromEnum(Direction.south)] = true,
+                    .guard_west => directions_row[idx][@intFromEnum(Direction.west)] = true,
+                    .border, .untracked, .tracked, .obstacle => {},
+                }
             }
             row[row.len - 1] = Cell.border;
             try rows.append(row);
+            try known_directions_list.append(directions_row);
         }
 
         var last_line = try alloc.alloc(Cell, expected_line_length.? + 2);
         for (0..last_line.len) |idx| last_line[idx] = Cell.border;
         try rows.append(last_line);
+        var last_dirs_row = try alloc.alloc([4]bool, expected_line_length.? + 2);
+        for (0..last_dirs_row.len) |d_row_idx| {
+            last_dirs_row[d_row_idx] = .{ false, false, false, false };
+        }
+        try known_directions_list.append(last_dirs_row);
 
         self.floor = try rows.toOwnedSlice();
+        self.known_directions = try known_directions_list.toOwnedSlice();
     }
 
     fn string(self: *Lab, buf: []u8) ![]u8 {
@@ -172,6 +199,8 @@ const Lab = struct {
     fn deinit(self: *Lab) void {
         for (self.floor) |row| self.allocator.free(row);
         self.allocator.free(self.floor);
+        for (self.known_directions) |row| self.allocator.free(row);
+        self.allocator.free(self.known_directions);
     }
 
     /// step returns true as long as there's more work to do for compatibility with while.
@@ -203,6 +232,15 @@ const Lab = struct {
         const dest = self.floor[dest_row][dest_col];
         try switch (dest) {
             .border, .tracked, .untracked => {
+                // Try to detect a loop.
+                // Record the guard's original direction for loop-detection.
+                try switch (orig) {
+                    .guard_north => self.known_directions[point.row_idx][point.col_idx][@intFromEnum(Direction.north)] = true,
+                    .guard_east => self.known_directions[point.row_idx][point.col_idx][@intFromEnum(Direction.east)] = true,
+                    .guard_south => self.known_directions[point.row_idx][point.col_idx][@intFromEnum(Direction.south)] = true,
+                    .guard_west => self.known_directions[point.row_idx][point.col_idx][@intFromEnum(Direction.west)] = true,
+                    .border, .untracked, .tracked, .obstacle => Error.NonGuardCellError,
+                };
                 self.floor[dest_row][dest_col] = orig;
                 self.floor[point.row_idx][point.col_idx] = .tracked;
             },
@@ -211,6 +249,8 @@ const Lab = struct {
         };
         return true;
     }
+
+    // fn detectLoop(self: *Lab) !bool {}
 };
 
 pub fn main() !void {
@@ -227,16 +267,25 @@ pub fn main() !void {
 }
 
 fn solution(in: []const u8) ![2]usize {
+    var part_1: usize = 0;
+    var part_2: usize = 0;
+
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
     const alloc = arena.allocator();
 
-    var lab: Lab = undefined;
-    try lab.init(alloc, in);
+    {
+        var lab: Lab = undefined;
+        try lab.init(alloc, in);
+        defer lab.deinit();
 
-    // Walk the whole course.
-    while (try lab.step()) {}
-    return .{ lab.tracked(), 0 };
+        // Walk the whole course.
+        while (try lab.step()) {}
+        part_1 = lab.tracked();
+    }
+    part_2 = 2;
+
+    return .{ part_1, part_2 };
 }
 
 test "part 1" {
@@ -283,4 +332,7 @@ test "part 1" {
         var map = try lab.string(&buf);
         try std.testing.expectEqualSlices(u8, expect[0..], map[0..expect.len]);
     }
+
+    try std.testing.expectEqual(41, (try solution(example))[0]);
+    try std.testing.expectEqual(5162, (try solution(input))[0]);
 }
