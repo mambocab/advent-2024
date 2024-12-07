@@ -87,3 +87,5 @@ By predicting the guard's route, you can determine which specific positions in t
 In this example, the guard will visit 41 distinct positions on your map.
 
 Predict the path of the guard. How many distinct positions will the guard visit before leaving the mapped area?
+
+Your puzzle answer was 5162.
