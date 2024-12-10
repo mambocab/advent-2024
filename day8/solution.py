@@ -35,12 +35,12 @@ class Cell:
     frequency: int | None
 
     # Start with the assumption that nothing's an antipode.
-    is_antinode: bool = False
+    is_part_1_antinode: bool = False
 
     def __str__(self) -> str:
         return (
             "#"
-            if self.is_antinode
+            if self.is_part_1_antinode
             else "."
             if self.frequency is None
             else chr(self.frequency)
@@ -111,7 +111,7 @@ class Field:
         count = 0
         for row in self.data:
             for cell in row:
-                if cell.is_antinode:
+                if cell.is_part_1_antinode:
                     count += 1
         return count
 
@@ -142,7 +142,7 @@ class Field:
                     except IndexError:
                         pass
                     try:
-                        row[antinode.col].is_antinode = True
+                        row[antinode.col].is_part_1_antinode = True
                     except IndexError:
                         pass
         self._marked = True
