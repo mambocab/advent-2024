@@ -4,6 +4,7 @@
 from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
+from functools import cache
 
 example = """
 89010123
@@ -61,14 +62,14 @@ class Cell:
         if self.west:
             yield self.west
 
-    def step(self) -> list[Cell]:
+    @cache
+    def step(self) -> tuple[Cell, ...]:
         result = []
         step_up = self.value + 1
         for neighbor in self.neighbors:
             if neighbor.value == step_up:
                 result.append(neighbor)
-        return result
-        
+        return tuple(result)
 
 
 @dataclass
@@ -78,7 +79,7 @@ class Map:
     @classmethod
     def from_str(cls, s: str) -> Map:
         cells: list[list[Cell]] = []
-        for line_idx, line in enumerate(s.splitlines()):
+        for line_idx, line in enumerate(s.strip().splitlines()):
             cells.append([])
             assert len(cells) - 1 == line_idx
 
@@ -103,7 +104,6 @@ class Map:
     def trailheads(self) -> Iterable[Cell]:
         yield from (c for c in self.cells if c.is_trailhead)
 
-
     def walk(self):
         current = list(self.trailheads)
         peaks = []
@@ -120,5 +120,3 @@ if __name__ == "__main__":
     m = Map.from_str(example)
     peaks = m.walk()
     print(len(peaks))
-
-
