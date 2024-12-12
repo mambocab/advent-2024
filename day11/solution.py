@@ -108,3 +108,6 @@ if __name__ == "__main__":
     # Part 1
     stones = tuple(Stone(v) for v in input_.split())
     print(sum(count_after_n_blinks(s, 25) for s in stones))
+
+    # Part 2
+    print(sum(count_after_n_blinks(s, 75) for s in stones))
