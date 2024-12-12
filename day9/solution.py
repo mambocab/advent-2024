@@ -7,10 +7,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-import pytest
-from pytest import param as prm
-
-
 example = "2333133121414131402"
 
 
