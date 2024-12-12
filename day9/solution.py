@@ -27,9 +27,7 @@ class FS:
             if c == "\n":
                 continue
             file_id, rem = divmod(i, 2)
-            metas.extend(
-                ([None] if rem else [file_id]) * int(c),
-            )
+            metas.extend(([None] if rem else [file_id]) * int(c))
         return cls(metas=metas)
 
     def swap_blocks(self) -> bool:
@@ -103,3 +101,13 @@ def test_example():
 
     assert str(fs) == "0099811188827773336446555566.............."
     assert fs.checksum() == 1928
+
+
+# Skipping: slow.
+# def test_part1():
+#     with open("input") as f:
+#         i = f.read()
+#     fs = FS.from_str(i)
+#     print("compacting...")
+#     fs.compact()
+#     assert fs.checksum() == 6360094256423
