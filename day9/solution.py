@@ -5,6 +5,7 @@
 # ///
 from __future__ import annotations
 from dataclasses import dataclass
+from enum import Enum, auto
 
 
 example = "2333133121414131402"
@@ -16,53 +17,47 @@ class _Sentinel: ...
 SENTINEL = _Sentinel()
 
 
+class BlockType(Enum):
+    FILE = auto()
+    EMPTY = auto()
+
+
+@dataclass
+class Block:
+    length: int
+    type_: BlockType
+
+
 @dataclass
 class FS:
-    metas: list[int | None]
+    files: list[Block]
 
     @classmethod
     def from_str(cls, s: str) -> "FS":
-        metas: list[int | None] = []
+        files = []
         for i, c in enumerate(s):
             if c == "\n":
                 continue
-            file_id, rem = divmod(i, 2)
-            metas.extend(([None] if rem else [file_id]) * int(c))
-        return cls(metas=metas)
-
-    def swap_blocks(self) -> bool:
-        first_none_idx = self.metas.index(None)
-        got = SENTINEL
-        last_non_none_idx = None
-        for last_non_none_idx in range(len(self.metas) - 1, 0, -1):
-            if (got := self.metas[last_non_none_idx]) is not None:
-                break
-        if got is SENTINEL:
-            raise ValueError
-
-        assert not isinstance(got, _Sentinel)
-        assert last_non_none_idx is not None
-
-        if first_none_idx > last_non_none_idx:
-            return False
-
-        self.metas[first_none_idx] = got
-        self.metas[last_non_none_idx] = None
-        return True
+            files.append(
+                Block(
+                    length=int(c),
+                    type_=BlockType.EMPTY if i % 2 == 0 else BlockType.FILE,
+                )
+            )
+        return cls(files=list(files))
 
     def compact(self) -> None:
-        while self.swap_blocks():
-            ...
+
 
     def checksum(self) -> int:
         result = 0
-        for i, x in enumerate(self.metas):
+        for i, x in enumerate(self.files):
             if x is not None:
                 result += x * i
         return result
 
     def __str__(self) -> str:
-        return "".join([str(x) if x is not None else "." for x in self.metas])
+        return "".join([str(x) if x is not None else "." for x in self.files])
 
 
 if __name__ == "__main__":
@@ -76,14 +71,14 @@ if __name__ == "__main__":
 
 def test_trivial():
     fs = FS.from_str("12345")
-    assert fs.metas == [0] + [None] * 2 + [1] * 3 + [None] * 4 + [2] * 5
+    assert fs.files == [0] + [None] * 2 + [1] * 3 + [None] * 4 + [2] * 5
 
 
 def test_example():
     fs = FS.from_str("2333133121414131402")
 
     # fmt: off
-    assert fs.metas == [
+    assert fs.files == [
         0, 0, None, None, None,
         1, 1, 1, None, None, None,
         2, None, None, None,
