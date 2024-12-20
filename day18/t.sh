@@ -1,2 +1,2 @@
-uvx pytest solution.py -vv
+uvx pytest solution.py -vv -s
 # uv run solution.py
