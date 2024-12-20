@@ -23,20 +23,20 @@ class Parsed:
 
 
 @cache
-def possible(towels: frozenset[str], design: str) -> bool:
+def possible(towels: frozenset[str], design: str) -> int:
     if design == "":
         # We've bottomed out and consumed the whole design. Good to go.
-        return True
+        return 1
 
+    result = 0
     for towel in towels:
         if design == towel:
             # We've bottomed out and consumed the whole design. Good to go.
-            return True
-        if design.startswith(towel):
-            if possible(towels, design[len(towel) :]):
-                return True
+            result += 1
+        elif design.startswith(towel):
+            result += possible(towels, design[len(towel) :])
 
-    return False
+    return result
 
 
 def parse(s: str):
@@ -51,9 +51,10 @@ def parse(s: str):
 def parsed_example():
     return parse(example)
 
+
 @pytest.fixture
 def parsed_input():
-    with open('input') as f:
+    with open("input") as f:
         return parse(f.read())
 
 
@@ -68,7 +69,7 @@ def test_parsed(parsed_example):
 
 @pytest.mark.parametrize(
     "towels, design, want",
-    ((frozenset(("rg",)), "rg", True),),
+    ((frozenset(("rg",)), "rg", 1),),
 )
 def test_possible_trivial(towels: frozenset[str], design: str, want: bool):
     assert possible(towels, design) is want
@@ -78,22 +79,26 @@ def test_possible_trivial(towels: frozenset[str], design: str, want: bool):
     "args, want",
     (
         (
-            ("brwrr", True),
-            ("bggr", True),
-            ("gbbr", True),
-            ("rrbgbr", True),
-            ("ubwu", False),
-            ("bwurrg", True),
-            ("brgr", True),
-            ("bbrgwb", False),
+            ("brwrr", 2),
+            ("bggr", 1),
+            ("gbbr", 4),
+            ("rrbgbr", 6),
+            ("ubwu", 0),
+            ("bwurrg", 1),
+            ("brgr", 2),
+            ("bbrgwb", 0),
         )
     ),
 )
 def test_possible_example(parsed_example: Parsed, args: str, want: bool):
-    assert possible(parsed_example.towels, args) is want
+    assert possible(parsed_example.towels, args) == want
 
-def test_part1(parsed_input: Parsed):
-    c = 0
+
+def test_calculate_result(parsed_input: Parsed):
+    part1 = part2 = 0
     for design in parsed_input.designs:
-        c += bool(possible(parsed_input.towels, design))
-    assert c == 363
+        result = possible(parsed_input.towels, design)
+        part1 += bool(result)
+        part2 += result
+    assert part1 == 363
+    assert part2 == 642535800868438
