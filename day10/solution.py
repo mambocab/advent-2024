@@ -1,6 +1,3 @@
-# /// script
-# dependencies = []
-# ///
 from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -18,6 +15,7 @@ example = """
 """
 
 
+@dataclass
 class Cell:
     value: int
 
@@ -116,7 +114,7 @@ class Map:
         return peaks
 
 
-if __name__ == "__main__":
+def test_part1():
     m = Map.from_str(example)
     peaks = m.walk()
-    print(len(peaks))
+    assert len(peaks) == 36
